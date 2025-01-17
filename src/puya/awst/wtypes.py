@@ -24,6 +24,7 @@ class WType:
     """ephemeral types are not suitable for naive storage / persistence,
      even if their underlying type is a simple stack value"""
     immutable: bool
+    source_location: SourceLocation | None = attrs.field(default=None, eq=False)
 
     def __str__(self) -> str:
         return self.name
@@ -165,7 +166,6 @@ class WStructType(WType):
     frozen: bool
     immutable: bool = attrs.field(init=False)
     scalar_type: None = attrs.field(default=None, init=False)
-    source_location: SourceLocation | None = attrs.field(eq=False)
     desc: str | None = None
 
     @immutable.default
@@ -187,7 +187,6 @@ class WArray(WType):
     element_type: WType = attrs.field()
     name: str = attrs.field(init=False)
     scalar_type: None = attrs.field(default=None, init=False)
-    source_location: SourceLocation | None = attrs.field(eq=False)
     immutable: bool = attrs.field(default=False, init=False)
 
     @element_type.validator
@@ -204,7 +203,6 @@ class WArray(WType):
 @attrs.frozen(eq=False)
 class WTuple(WType):
     types: tuple[WType, ...] = attrs.field(converter=tuple[WType, ...])
-    source_location: SourceLocation | None = attrs.field(default=None)
     scalar_type: None = attrs.field(default=None, init=False)
     immutable: bool = attrs.field(default=True, init=False)
     name: str = attrs.field(kw_only=True)
@@ -286,7 +284,6 @@ class ARC4UIntN(ARC4Type):
     n: int = attrs.field()
     arc4_name: str = attrs.field(eq=False)
     name: str = attrs.field(init=False)
-    source_location: SourceLocation | None = attrs.field(default=None, eq=False)
 
     @n.validator
     def _n_validator(self, _attribute: object, n: int) -> None:
@@ -315,7 +312,6 @@ class ARC4UFixedNxM(ARC4Type):
     immutable: bool = attrs.field(default=True, init=False)
     arc4_name: str = attrs.field(init=False, eq=False)
     name: str = attrs.field(init=False)
-    source_location: SourceLocation | None = attrs.field(default=None, eq=False)
     native_type: None = attrs.field(default=None, init=False)
 
     @arc4_name.default
@@ -409,7 +405,6 @@ class ARC4Array(ARC4Type):
 class ARC4DynamicArray(ARC4Array):
     name: str = attrs.field(init=False)
     arc4_name: str = attrs.field(eq=False)
-    source_location: SourceLocation | None = attrs.field(default=None, eq=False)
 
     @name.default
     def _name(self) -> str:
@@ -426,7 +421,6 @@ class ARC4StaticArray(ARC4Array):
     array_size: int = attrs.field(validator=attrs.validators.ge(0))
     name: str = attrs.field(init=False)
     arc4_name: str = attrs.field(eq=False)
-    source_location: SourceLocation | None = attrs.field(default=None, eq=False)
 
     @name.default
     def _name(self) -> str:
@@ -459,7 +453,6 @@ class ARC4Struct(ARC4Type):
     fields: immutabledict[str, ARC4Type] = attrs.field(converter=_require_arc4_fields)
     frozen: bool
     immutable: bool = attrs.field(init=False)
-    source_location: SourceLocation | None = attrs.field(default=None, eq=False)
     arc4_name: str = attrs.field(init=False, eq=False)
     native_type: None = attrs.field(default=None, init=False)
     desc: str | None = None
