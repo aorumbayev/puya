@@ -372,7 +372,7 @@ class ARC4Tuple(ARC4Type):
 
     @native_type.default
     def _native_type(self) -> WTuple:
-        return WTuple(self.types, self.source_location)
+        return WTuple(types=self.types, source_location=self.source_location)
 
     def can_encode_type(self, wtype: WType) -> bool:
         return super().can_encode_type(wtype) or _is_arc4_encodeable_tuple(wtype, self.types)
