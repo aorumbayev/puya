@@ -119,12 +119,7 @@ class PrimitiveIRType(IRType, enum.StrEnum):
                 raise InternalError(f"could not determine AVM type for {self.name}")
 
     @property
-    def size(self) -> int | None:
-        match self:
-            case PrimitiveIRType.uint64:
-                return 8
-            case PrimitiveIRType.bool:
-                return 1
+    def size(self) -> None:
         return None
 
     def __repr__(self) -> str:
@@ -276,6 +271,27 @@ class UnionType(IRType):
 
 
 @attrs.frozen(str=False, order=False)
+class SizedUIntType(IRType):
+    size: int
+
+    @property
+    def name(self) -> str:
+        n = self.size * 8
+        return f"uint{n}"
+
+    @property
+    def avm_type(self) -> typing.Literal[AVMType.uint64]:
+        return AVMType.uint64
+
+    @property
+    def maybe_avm_type(self) -> typing.Literal[AVMType.uint64]:
+        return self.avm_type
+
+    def __str__(self) -> str:
+        return self.name
+
+
+@attrs.frozen(str=False, order=False)
 class SizedBytesType(IRType):
     """A bytes type with a static length"""
 
@@ -375,6 +391,9 @@ def wtype_to_encoded_ir_type(
     require_static_size: bool,
     loc: SourceLocation | None,
 ) -> IRType:
+    """
+    Return the array encoded IRType of a WType
+    """
     if isinstance(wtype, wtypes.WTuple):
         return EncodedTupleType(
             elements=[
@@ -382,6 +401,13 @@ def wtype_to_encoded_ir_type(
                 for e in wtype.types
             ]
         )
+    # note: any types added here should also be handled when lowering ArrayEncode nodes
+    elif wtype == wtypes.bool_wtype:
+        return SizedUIntType(1)
+    elif wtype.scalar_type == AVMType.uint64:
+        return SizedUIntType(8)
+    elif wtype == wtypes.biguint_wtype:
+        return SizedBytesType(64)
     else:
         ir_type = wtype_to_ir_type(wtype, loc)
         if ir_type.size is None and require_static_size:

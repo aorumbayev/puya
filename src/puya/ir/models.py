@@ -112,7 +112,7 @@ class Value(ValueProvider, abc.ABC):
 
 
 def _is_uint64_type(_op: Context, _attribute: object, value: Value) -> None:
-    if value.ir_type != PrimitiveIRType.uint64:
+    if value.ir_type.maybe_avm_type != AVMType.uint64:
         raise InternalError(
             f"expected uint64 type, received: {value.ir_type}", value.source_location
         )
@@ -435,9 +435,10 @@ def _value_has_encoded_array_element_type(
     array_ir_type = _array_type(op.array)
     element_type = array_ir_type.element
     if isinstance(value, Value):
-        if value.ir_type != element_type:
+        if value.ir_type.maybe_avm_type != element_type.maybe_avm_type:
             raise InternalError(
-                f"expected {element_type} type, received: {value.ir_type}",
+                f"expected {element_type.maybe_avm_type} AVM type,"
+                f" received: {value.ir_type.maybe_avm_type}",
                 value.source_location,
             )
     else:

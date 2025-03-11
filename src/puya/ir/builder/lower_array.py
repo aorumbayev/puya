@@ -240,7 +240,14 @@ def _encode_array_item(
     for value, (sub_type, tuple_group) in zip(
         values, EncodedTupleType.expand_type_and_group_id(element_type), strict=True
     ):
-        if sub_type == PrimitiveIRType.bool:
+        if sub_type.size is None:
+            raise InternalError("expected fixed size element", loc)
+        value_type = value.ir_type
+        # bool values are encoded as a single ARC-4 Bool value, i.e. consecutive values are not
+        # bit-packed. This allows easier conversion from ReferenceArray encoding to ARC-4 encoding
+        # and also means the standard way of calculating array length
+        # len(array_bytes) / sizeof(EncodedElementType) continues to work
+        if value_type == PrimitiveIRType.bool:
             # sequential bits in the same tuple are bit-packed
             if last_type_and_group == (sub_type, tuple_group):
                 bit_packed_index += 1
@@ -265,15 +272,21 @@ def _encode_array_item(
                     temp_desc="encoded_bit",
                 )
                 bit_packed_index = 0
-        elif sub_type.avm_type == AVMType.uint64:
+        # uint64 values are encoded to their equivalent bytes
+        elif value_type.avm_type == AVMType.uint64:
             value = factory.itob(value, "sub_item")
             if sub_type.size != 8:
-                assert sub_type.size is not None, "expected fixed type"
                 value = factory.extract3(
                     value, 8 - sub_type.size, sub_type.size, "sub_item_truncated"
                 )
-        if sub_type.size is None:
-            raise InternalError("expected fixed size element", loc)
+        # biguint values are first padded to 64 bytes
+        elif value_type == PrimitiveIRType.biguint:
+            value = factory.to_fixed_size(value, 64, "sub_item")
+        # all other byte values should be the correct size already due to earlier check
+        elif value_type.avm_type == AVMType.bytes:
+            pass
+        else:
+            raise InternalError(f"unexpected element type for array encoding: {value_type}", loc)
         encoded_length += sub_type.size
         last_type_and_group = sub_type, tuple_group
         encoded = factory.concat(encoded, value, "encoded", ir_type=array_type)
