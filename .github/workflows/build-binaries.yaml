@@ -1,0 +1,188 @@
+name: Build, Test and Publish Pyinstaller Binaries
+
+on:
+  workflow_call:
+    inputs:
+      production_release:
+        required: true
+        type: boolean
+        default: false
+      python_version:
+        required: false
+        type: string
+        default: "3.12"
+      version_tag:
+        required: true
+        type: string
+      version_number:
+        required: true
+        type: string
+jobs:
+  generate-smoke-test-inputs:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version_tag }}
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+          cache: "poetry"
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Generate input data
+        shell: bash
+        run: |
+          poetry run puyapy --output-awst-json examples/hello_world_arc4
+          echo '{"compilation_set":{"examples.hello_world_arc4.contract.HelloWorldContract": "."}, "output_teal": true}' > options.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-smoke-test-inputs
+          if-no-files-found: error
+          path: |
+            module.awst.json
+            options.json
+
+  build-binaries:
+    needs: generate-smoke-test-inputs
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # Continue with other matrix jobs even if one fails
+      matrix:
+        # macos-14 is the Apple Silicon M1 runner (mac os 14)
+        # macos-13 is the last available Intel Mac runner (mac os 13)
+        # See https://github.com/actions/runner-images?tab=readme-ov-file#available-images
+        os: [ubuntu-22.04, ubuntu-22.04-arm, windows-latest, macos-13, macos-14]
+    outputs:
+      package-prefix: ${{ steps.configure.outputs.package_prefix }}
+
+    steps:
+      - name: Set signing condition
+        id: signing
+        shell: bash
+        # TODO: FIXME allowed=false
+        run: |
+          # Allow signing on main branch non-PR events (regardless of production_release value)
+          if [[ "${{ github.event_name }}" != "pull_request" && \
+                "${{ github.ref_name }}" == "main" ]]; then
+            echo "allowed=false" >> $GITHUB_OUTPUT
+          else
+            echo "allowed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version_tag }}
+
+      - name: Configure build environment
+        id: configure
+        shell: bash
+        run: |
+          artifacts_dir="${{ github.workspace }}/dist/artifacts"
+          mkdir -p $artifacts_dir
+          package_prefix="puya-${{ inputs.version_number }}"
+          echo "package_prefix=${package_prefix}" >> "$GITHUB_OUTPUT"
+          package_name="${package_prefix}-${{ runner.os }}_${{ runner.arch }}"
+          echo "PACKAGE_NAME=`echo $package_name | tr '[:upper:]' '[:lower:]'`" >> $GITHUB_ENV
+          echo "ARTIFACTS_DIR=${artifacts_dir}" >> $GITHUB_ENV
+
+      - name: Docker registry login
+        if: ${{ runner.os == 'Linux' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build linux binary
+        if: ${{ runner.os == 'Linux' }}
+        uses: ./.github/actions/build-binaries/linux
+        with:
+          python_version: ${{ inputs.python_version }}
+          package_name: ${{ env.PACKAGE_NAME }}
+          artifacts_dir: ${{ env.ARTIFACTS_DIR }}
+          with_codesign: ${{ steps.signing.outputs.allowed == 'true' }}
+          gpg-signing-private-key: ${{ steps.signing.outputs.allowed == 'true' && secrets.GPG_SIGNING_PRIVATE_KEY || '' }}
+          gpg-signing-private-key-password: ${{ steps.signing.outputs.allowed == 'true' && secrets.GPG_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
+          gpg-key-id: ${{ steps.signing.outputs.allowed == 'true' && secrets.GPG_KEY_ID || '' }}
+
+      - name: Build windows binary
+        if: ${{ runner.os == 'Windows' }}
+        uses: ./.github/actions/build-binaries/windows
+        with:
+          python_version: ${{ inputs.python_version }}
+          package_name: ${{ env.PACKAGE_NAME }}
+          artifacts_dir: ${{ env.ARTIFACTS_DIR }}
+          with_codesign: ${{ steps.signing.outputs.allowed == 'true' }}
+          azure_tenant_id: ${{ steps.signing.outputs.allowed == 'true' && secrets.AZURE_TENANT_ID || '' }}
+          azure_client_id: ${{ steps.signing.outputs.allowed == 'true' && secrets.AZURE_CLIENT_ID || '' }}
+          azure_client_secret: ${{ steps.signing.outputs.allowed == 'true' && secrets.AZURE_CLIENT_SECRET || '' }}
+
+      - name: Install Apple Developer Id Cert
+        if: ${{ runner.os == 'macOS' && steps.signing.outputs.allowed == 'true' }}
+        uses: ./.github/actions/install-apple-dev-id-cert
+        with:
+          cert_data: ${{ secrets.APPLE_CERT_DATA }}
+          cert_password: ${{ secrets.APPLE_CERT_PASSWORD }}
+
+      - name: Build macOS binary
+        if: ${{ runner.os == 'macOS' }}
+        uses: ./.github/actions/build-binaries/macos
+        with:
+          python_version: ${{ inputs.python_version }}
+          package_name: ${{ env.PACKAGE_NAME }}
+          artifacts_dir: ${{ env.ARTIFACTS_DIR }}
+          with_codesign: ${{ steps.signing.outputs.allowed == 'true' }}
+          apple_team_id: ${{ steps.signing.outputs.allowed == 'true' && secrets.APPLE_TEAM_ID || '' }}
+          apple_bundle_id: ${{ inputs.production_release && secrets.APPLE_BUNDLE_ID || format('beta.{0}', secrets.APPLE_BUNDLE_ID) }}
+          apple_cert_id: ${{ steps.signing.outputs.allowed == 'true' && secrets.APPLE_CERT_ID || '' }}
+          apple_notary_user: ${{ steps.signing.outputs.allowed == 'true' && secrets.APPLE_NOTARY_USER || '' }}
+          apple_notary_password: ${{ steps.signing.outputs.allowed == 'true' && secrets.APPLE_NOTARY_PASSWORD || '' }}
+
+      - name: Download smoke test data
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-smoke-test-inputs
+
+      - name: Binary smoke test
+        shell: bash
+        run: |
+          # Run a basic test to verify the binary works
+          ./dist/puya/puya --version
+
+          # Run the binary tests
+          ./dist/puya/puya --options options.json --awst module.awst.json 
+
+          if [ -f HelloWorldContract.approval.teal ]; then
+            cat HelloWorldContract.approval.teal
+          else
+            echo "File HelloWorldContract.approval.teal does not exist" >&2
+            exit 1
+          fi
+
+      # Upload binary artifacts for the CD workflow to handle
+      - name: Upload binary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-artifacts-${{ runner.os }}-${{ runner.arch }}
+          if-no-files-found: error
+          path: ${{ env.ARTIFACTS_DIR }}/*.*
+
+  test-linux-compatibility:
+    needs: build-binaries
+    uses: ./.github/workflows/test-linux-distros.yaml
+    with:
+      package_prefix: ${{ needs.build-binaries.outputs.package-prefix }}
