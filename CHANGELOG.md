@@ -1,4 +1,10 @@
 # CHANGELOG
+## v4.6.4 (2025-03-11)
+
+### Fix
+
+* test ([`7d3e4cf`](https://github.com/aorumbayev/puya/commit/7d3e4cf1497605093bce6111b356052858598945))
+
 ## v4.6.3 (2025-03-11)
 
 ### Fix
