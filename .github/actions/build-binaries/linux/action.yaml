@@ -128,8 +128,7 @@ runs:
             --local-user ${{ inputs.gpg-key-id }} --detach-sign --armor puya
 
         # Move signed artifacts to the artifacts directory
-        mkdir -p ${{ inputs.artifacts_dir }}/signatures
-        cp puya.asc ${{ inputs.artifacts_dir }}/signatures/
+        cp puya.asc ${{ inputs.artifacts_dir }}/${{ inputs.package_name }}-executable.asc
 
     # Create tar.gz archive in the artifacts directory for GitHub releases
     - name: Package binary for release
@@ -232,5 +231,5 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.package_name }}-executable-signature
-        path: ${{ inputs.artifacts_dir }}/signatures/puya.asc
+        path: ${{ inputs.artifacts_dir }}/${{ inputs.package_name }}-executable.asc
         if-no-files-found: error
