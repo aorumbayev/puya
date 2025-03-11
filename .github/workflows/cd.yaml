@@ -185,7 +185,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: all-artifacts
-          pattern: binary-artifacts-*|*-archive-signature|*-executable-signature|*-sha256-signature|*-sha256|puya-*
+          pattern: binary-artifacts-*
           merge-multiple: true
 
       - name: Display structure of downloaded files
