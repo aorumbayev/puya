@@ -4,6 +4,10 @@ on:
   workflow_call:
   pull_request:
 
+permissions:
+    contents: write
+    packages: write
+
 jobs:
   build-and-upload-binaries: # TODO: REMOVE ME
     name: Build and Upload Binaries
