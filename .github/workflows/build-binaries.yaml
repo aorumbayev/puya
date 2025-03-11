@@ -113,9 +113,9 @@ jobs:
           package_name: ${{ env.PACKAGE_NAME }}
           artifacts_dir: ${{ env.ARTIFACTS_DIR }}
           with_codesign: true
-          gpg-signing-private-key: ${{ steps.signing.outputs.allowed == 'true' && secrets.GPG_SIGNING_PRIVATE_KEY || '' }}
-          gpg-signing-private-key-password: ${{ steps.signing.outputs.allowed == 'true' && secrets.GPG_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
-          gpg-key-id: ${{ steps.signing.outputs.allowed == 'true' && secrets.GPG_KEY_ID || '' }}
+          gpg-signing-private-key: ${{ secrets.GPG_SIGNING_PRIVATE_KEY }}
+          gpg-signing-private-key-password: ${{ secrets.GPG_SIGNING_PRIVATE_KEY_PASSWORD }}
+          gpg-key-id: ${{ secrets.GPG_KEY_ID }}
 
       - name: Build windows binary
         if: ${{ runner.os == 'Windows' }}
