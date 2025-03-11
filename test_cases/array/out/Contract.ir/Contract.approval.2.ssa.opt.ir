@@ -686,12 +686,11 @@ subroutine test_cases.array.uint64.Contract.test_quicksort() -> void:
         let rnd#0: uint64[]* = new()
         write(rnd#0, encoded%0#0)
         let tmp%0#0: bytes[32] = (txn Sender)
-        let bytes_length%0#0: uint64 = (len tmp%0#0)
         let item_index_internal%0#0: uint64 = 0u
         goto block@1
     block@1: // for_header_L160
         let item_index_internal%0#1: uint64 = φ(item_index_internal%0#0 <- block@0, item_index_internal%0#2 <- block@2)
-        let continue_looping%0#0: bool = (< item_index_internal%0#1 bytes_length%0#0)
+        let continue_looping%0#0: bool = (< item_index_internal%0#1 32u)
         goto continue_looping%0#0 ? block@2 : block@4
     block@2: // for_body_L161
         let tmp%1#0: uint64 = (getbyte tmp%0#0 item_index_internal%0#1)

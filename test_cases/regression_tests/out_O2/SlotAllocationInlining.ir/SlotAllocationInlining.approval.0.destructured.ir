@@ -27,11 +27,10 @@ main test_cases.regression_tests.slot_allocation_inlining.SlotAllocationInlining
 subroutine test_cases.regression_tests.slot_allocation_inlining.append_to_array(arr: uint64[]*) -> void:
     block@0: // L22
         let tmp%0#0: bytes[32] = (txn Sender)
-        let bytes_length%0#0: uint64 = (len tmp%0#0)
         let item_index_internal%0#0: uint64 = 0u
         goto block@1
     block@1: // for_header_L24
-        let continue_looping%0#0: bool = (< item_index_internal%0#0 bytes_length%0#0)
+        let continue_looping%0#0: bool = (< item_index_internal%0#0 32u)
         goto continue_looping%0#0 ? block@2 : block@4
     block@2: // for_body_L25
         let tmp%1#0: uint64 = (getbyte tmp%0#0 item_index_internal%0#0)

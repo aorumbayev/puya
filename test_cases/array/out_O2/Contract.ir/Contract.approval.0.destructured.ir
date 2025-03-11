@@ -537,11 +537,10 @@ main algopy.arc4.ARC4Contract.approval_program:
         let rnd#0: uint64[]* = new()
         write(rnd#0, 0x)
         let tmp%0#2: bytes[32] = (txn Sender)
-        let bytes_length%0#0: uint64 = (len tmp%0#2)
         let item_index_internal%0#0: uint64 = 0u
         goto block@24
     block@24: // for_header_L160
-        let continue_looping%0#0: bool = (< item_index_internal%0#0 bytes_length%0#0)
+        let continue_looping%0#0: bool = (< item_index_internal%0#0 32u)
         goto continue_looping%0#0 ? block@25 : block@26
     block@25: // for_body_L161
         let tmp%1#1: uint64 = (getbyte tmp%0#2 item_index_internal%0#0)
