@@ -164,6 +164,34 @@ runs:
         rm -rf $GNUPGHOME
         cd ../..
 
+    # Sign the tar.gz archive with GPG
+    - name: Sign tar.gz archive with GPG
+      if: ${{ inputs.with_codesign == 'true' }}
+      shell: bash
+      run: |
+        # Create temporary directory for GPG operations
+        mkdir -p /tmp/gpg-signing
+        chmod 700 /tmp/gpg-signing
+        export GNUPGHOME=/tmp/gpg-signing
+
+        # Configure GPG
+        echo "disable-scdaemon" > $GNUPGHOME/gpg-agent.conf
+
+        # Import the GPG private key
+        echo "${{ inputs.gpg-signing-private-key }}" | base64 -d > $GNUPGHOME/private.key
+        gpg --batch --import $GNUPGHOME/private.key
+        rm -f $GNUPGHOME/private.key
+
+        cd ${{ inputs.artifacts_dir }}
+
+        # Sign the tar.gz archive
+        gpg --batch --pinentry-mode loopback --passphrase "${{ inputs.gpg-signing-private-key-password }}" \
+            --local-user ${{ inputs.gpg-key-id }} --detach-sign --armor ${{ inputs.package_name }}.tar.gz
+            
+        # Clean up
+        rm -rf $GNUPGHOME
+        cd ../..
+
     # Upload the tar.gz archive as GitHub Actions artifact
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
@@ -187,6 +215,15 @@ runs:
       with:
         name: ${{ inputs.package_name }}-sha256-signature
         path: ${{ inputs.artifacts_dir }}/${{ inputs.package_name }}.sha256.txt.asc
+        if-no-files-found: error
+
+    # Upload GPG signature for tar.gz archive
+    - name: Upload tar.gz signature artifact
+      if: ${{ inputs.with_codesign == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.package_name }}-archive-signature
+        path: ${{ inputs.artifacts_dir }}/${{ inputs.package_name }}.tar.gz.asc
         if-no-files-found: error
 
     # Upload GPG signature for executable
