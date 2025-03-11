@@ -1,4 +1,10 @@
 # CHANGELOG
+## v4.6.0 (2025-03-11)
+
+### Feature
+
+* test ([`ddd325b`](https://github.com/aorumbayev/puya/commit/ddd325ba06b5deaa8f40790c496378934517b8a8))
+
 ## v4.5.0 (2025-03-11)
 
 ### Feature
