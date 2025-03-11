@@ -4,10 +4,6 @@ on:
   workflow_call:
   pull_request:
 
-permissions:
-    contents: write
-    packages: write
-
 jobs:
  check-python:
    runs-on: "ubuntu-latest"

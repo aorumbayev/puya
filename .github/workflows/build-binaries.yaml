@@ -20,8 +20,6 @@ on:
 jobs:
   generate-smoke-test-inputs:
     runs-on: ubuntu-latest
-    permissions:
-      packages: write
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4

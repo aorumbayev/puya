@@ -144,7 +144,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
-          ref: ${{ needs.prepare-release.outputs.version_tag }}
 
       - name: Install poetry
         run: pipx install poetry
@@ -195,10 +194,9 @@ jobs:
       - name: Append artifacts to release
         uses: softprops/action-gh-release@v1
         with:
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true
           files: all-artifacts/**/*
           tag_name: ${{ format('v{0}', needs.prepare-release.outputs.version_number) }}
-          prerelease: ${{ contains(needs.prepare-release.outputs.version_number, 'beta') }}
 
   publish-to-pypi:
     name: Publish to PyPI
