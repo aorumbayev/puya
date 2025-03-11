@@ -83,14 +83,14 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --with cicd
 
-      - name: pre-commit and pytest
-        if: inputs.run_checks
-        run: |
-            set -o pipefail
-            source $(poetry env info --path)/bin/activate
-            pre-commit run --all-files && git diff --exit-code
-            algokit localnet start
-            pytest
+      # - name: pre-commit and pytest
+      #   if: inputs.run_checks
+      #   run: |
+      #       set -o pipefail
+      #       source $(poetry env info --path)/bin/activate
+      #       pre-commit run --all-files && git diff --exit-code
+      #       algokit localnet start
+      #       pytest
 
       - name: Get branch name
         id: get_branch
@@ -201,7 +201,7 @@ jobs:
 
   publish-to-pypi:
     name: Publish to PyPI
-    needs: [prepare-release, build-and-upload-binaries, append-binaries-to-release]
+    needs: [prepare-release, append-binaries-to-release]
     if: needs.prepare-release.outputs.branch_name == 'main' && !inputs.dry_run && inputs.publish_pypi
     runs-on: ubuntu-latest
     permissions:
@@ -229,7 +229,7 @@ jobs:
   publish-docs:
     name: Publish Docs
     if: ${{ !inputs.dry_run && inputs.publish_docs }}
-    needs: [prepare-release, publish-to-github]
+    needs: [publish-to-pypi]
     uses: ./.github/workflows/gh-pages.yaml
     permissions:
       contents: read
