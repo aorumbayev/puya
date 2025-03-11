@@ -228,8 +228,8 @@ jobs:
 
   publish-docs:
     name: Publish Docs
-    if: ${{ !inputs.dry_run && inputs.publish_docs }}
-    needs: [publish-to-pypi]
+    needs: [prepare-release]
+    if: needs.prepare-release.outputs.branch_name == 'main' && !inputs.dry_run && inputs.publish_docs
     uses: ./.github/workflows/gh-pages.yaml
     permissions:
       contents: read
