@@ -1,4 +1,10 @@
 # CHANGELOG
+## v4.6.9 (2025-03-14)
+
+### Fix
+
+* get wheels in gh stage ([`b32fc1d`](https://github.com/aorumbayev/puya/commit/b32fc1de1fd4c7684837b087830c8e489022371a))
+
 ## v4.6.8 (2025-03-14)
 
 ### Fix
