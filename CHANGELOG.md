@@ -1,4 +1,10 @@
 # CHANGELOG
+## v4.6.7 (2025-03-14)
+
+### Fix
+
+* testing latest ([`48bf74b`](https://github.com/aorumbayev/puya/commit/48bf74b44618613ce51ec138c82602685fed97db))
+
 ## v4.6.6 (2025-03-11)
 
 ### Fix
